@@ -1,5 +1,6 @@
 import serial
 import time
+import math
 
 port_num = 'COM8'
 baud = 115200
@@ -29,6 +30,11 @@ while ser.is_open is True:
         else:
             send_packet[2] = 0xFF
             send_packet[3] = 0xFF
+
+        temp = 0.75 * math.sin(2 * math.pi *0.1* timer / 10) + 0.25 * math.sin(2 * math.pi * 1 * timer / 10)
+        temp = int((temp + 1)/2 * 65536)
+        send_packet[4] = (temp >> 8) & 0xFF
+        send_packet[5] = temp & 0xFF
 
         timer = timer + 1
 
