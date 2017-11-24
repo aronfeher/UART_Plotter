@@ -1,24 +1,47 @@
-from PyQt5 import QtWidgets
-import qcustomplot as qcp
+import serial
+import time
 
-import sys
-import math
+port_num = 'COM8'
+baud = 115200
+receive_packet = bytearray([0xF1, 0x05, 0x00, 0x00, 0xF3, 0x0D, 0x0A])
+send_packet = bytearray([0xF2, 0x07, 0xFF, 0xFF, 0xFF, 0xFF, 0xF3, 0x0D, 0x0A])
 
-def main():
-    app = QtWidgets.QApplication(sys.argv)
-    plot = qcp.QCustomPlot()
-    graph = plot.addGraph()
+ser = serial.Serial(port=port_num, baudrate=baud)
+send_data = False
+quit_prog = False
 
-    x_data = range(1000)
-    y_data = [math.sin(x*2*math.pi/1000) for x in x_data]
-    graph.setData(x_data, y_data)
+timer = 0
 
-    plot.xAxis.setRange(0,1000)
-    plot.yAxis.setRange(-2,2)
+while ser.is_open is True:
+    if ser.in_waiting > 0:
+        rec = ser.readline()
+        if rec[3] == 0x32:
+            print("Start received")
+            send_data = True
+        if rec[3] == 0x31:
+            print("Stop received")
+            send_data = False
+            ser.close()
+    if send_data is True:
+        if timer < 10:
+            send_packet[2] = 0x00
+            send_packet[3] = 0x00
+        else:
+            send_packet[2] = 0xFF
+            send_packet[3] = 0xFF
 
-    plot.show()
+        timer = timer + 1
 
-    sys.exit(app.exec_())
+        if timer >= 20:
+            timer = 0
 
-if __name__ == '__main__':
-main()
+
+        ser.write(send_packet)
+        print(str(send_packet[2] * 8 + send_packet[3]) + " Sent")
+        time.sleep(0.1)
+
+def animate():
+    global a1
+    global plt_array1
+    a1.clear()
+    a1.plot(plt_array1)

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'helpwindow.ui'
@@ -70,7 +69,6 @@ if __name__ == "__main__":
     HelpWindow.show()
     sys.exit(app.exec_())
 
-=======
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'helpwindow.ui'
@@ -141,5 +139,3 @@ if __name__ == "__main__":
     ui.setupUi(HelpWindow)
     HelpWindow.show()
     sys.exit(app.exec_())
-
->>>>>>> origin/master

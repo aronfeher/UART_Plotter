@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'mainwindow.ui'
@@ -11,47 +11,14 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import helpwindow as HW
 import serial
 import serial.tools.list_ports
-from vispy import gloo
-from vispy import app
-from vispy import use
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
 import sys
-import math
+from threading import Thread
 import time
 import numpy as np
-
-#use("pyqt5")
-
-vertex = """
-attribute vec2 a_position;
-void main (void)
-{
-    gl_Position = vec4(a_position, 0.0, 1.0);
-}
-"""
-
-fragment = """
-void main()
-{
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-}
-"""
-
-
-
-class Canvas(app.Canvas):
-
-    program = gloo.Program(vertex, fragment)
-    program['a_position'] = np.c_[np.linspace(-1.0, +1.0, 1000), np.sin(np.linspace(-np.pi, np.pi, 1000) )].astype(np.float32)
-
-
-    def on_resize(self, event):
-        gloo.set_viewport(0, 0, *event.size)
-
-
-    def on_draw(self, event):
-        gloo.clear((1, 1, 1, 1))
-        Canvas.program.draw('line_strip')
-
+from collections import deque
+import scipy.fftpack
 
 
 
@@ -59,6 +26,14 @@ class Ui_MainWindow(object):
 
     is_connected = False
     is_started = False
+    plot_mode = 1
+    custom_i = 0
+
+    rec_data1 = []
+    rec_data2 = []
+
+    send_packet = bytearray([0xF1, 0x05, 0x00, 0x00, 0xF3, 0x0D, 0x0A])
+    receive_packet = bytearray([0xF2, 0x07, 0xFF, 0xFF, 0xFF, 0xFF, 0xF3, 0x0D, 0x0A])
 
 
     def setupUi(self, MainWindow):
@@ -321,20 +296,23 @@ class Ui_MainWindow(object):
 
         # User code section starts here
 
-        self.canvas1 = Canvas()
-        self.canvas1.create_native()
-        self.verticalLayout_2.addWidget(self.canvas1.native)
-        self.canvas1.show()
+        self.figure1 = plt.figure()
+        self.canvas1 = FigureCanvas(self.figure1)
+        self.verticalLayout_2.addWidget(self.canvas1)
 
+        self.axes = plt.gca()
+        self.axes.set_ylim([self.spinAxesMin.value(), self.spinAxesMax.value()])
+        self.axes.set_xlim([0, self.spinPoints.value()])
+        self.axes.set_autoscale_on(False)
 
-        # self.canvas2 = Canvas()
-        # self.canvas2.create_native()
-        # self.verticalLayout_2.addWidget(self.canvas2.native)
-        # self.canvas2.show()
+        self.figure2 = plt.figure()
+        self.canvas2 = FigureCanvas(self.figure2)
+        self.verticalLayout_2.addWidget(self.canvas2)
 
-
-
-
+        self.axes = plt.gca()
+        self.axes.set_ylim([self.spinAxesMin.value(), self.spinAxesMax.value()])
+        self.axes.set_xlim([0, self.spinPoints.value()])
+        self.axes.set_autoscale_on(False)
 
         self.actionHow_to_use.triggered.connect(self.openHelp)
 
@@ -354,12 +332,68 @@ class Ui_MainWindow(object):
 
         self.startPlotButton.clicked.connect(self._start)
 
+        len = self.spinPoints.value()
+
+        Ui_MainWindow.rec_data1 = deque([0]*len, len)
+        Ui_MainWindow.rec_data2 = deque([0]*len, len)
+
+
+        self.work_thread = Thread(target=self.plot_thread)
+        self.work_thread.start()
 
         # User code section ends here
 
         self.retranslateUi(MainWindow)
         self.comboAxes.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+
+    def plot_thread(self):
+
+        while(True):
+            if Ui_MainWindow.is_started is True:
+                if self.ser.in_waiting > 0:
+                    # There is data waiting to be processed do it here
+                    #1.  Parse the data
+                    temp_raw_container = self.ser.read_all()
+                    temp_parsed_container = temp_raw_container.splitlines()
+                    #2. Check for packet features
+                    for temp in temp_parsed_container:
+                        temp_bytes = bytearray(temp)
+                        if temp_bytes[0] == Ui_MainWindow.receive_packet[0]:
+                            if len(temp_bytes) == Ui_MainWindow.receive_packet[1]:
+                                #3. The packet is intact, the data can be stored
+                                temp = temp_bytes[2]*8 + temp_bytes[3]
+                                Ui_MainWindow.rec_data1.append(temp)
+
+                                temp = temp_bytes[4] * 8 + temp_bytes[5]
+                                Ui_MainWindow.rec_data2.append(temp)
+
+                                #4. Plot the updated np buffer
+                                self.figure1.clear()
+                                ax = self.figure1.add_subplot(111)
+                                ax.plot(Ui_MainWindow.rec_data1, 'r-')
+                                ax.plot(Ui_MainWindow.rec_data2, 'b-')
+                                self.canvas1.draw()
+
+                                # 5. FFT
+                                temp_np_array = np.array(Ui_MainWindow.rec_data1, dtype=np.float32)
+
+                                np_fft_array = scipy.fftpack.fft(temp_np_array)
+
+                                self.figure2.clear()
+                                ax = self.figure2.add_subplot(111)
+                                ax.plot(np.abs( np_fft_array[:1024//2]), 'r-')
+                                self.canvas2.draw()
+
+                            else:
+                                pass
+                        else:
+                            pass
+
+                else:
+                    pass
+            time.sleep(0.1)
 
     @staticmethod
     def serial_ports():
@@ -391,39 +425,48 @@ class Ui_MainWindow(object):
                 Ui_MainWindow.is_connected = True
                 self.connectButton.setText("Disconnect")
             except:
-                wr = QtWidgets.QMessageBox.Error(self.centralWidget, "Error", "Can't connect to device!")
+                wr = QtWidgets.QMessageBox.warning(self.centralWidget, "Error", "Can't connect to device!")
+
 
         else:
             if Ui_MainWindow.is_started is True:
-                wr = QtWidgets.QMessageBox.Warning(self.centralWidget, "Warning", "Stop acquisition!")
+                wr = QtWidgets.QMessageBox.warning(self.centralWidget, "Warning", "Stop acquisition!")
             else:
                 try:
                     self.ser.close()
                     Ui_MainWindow.is_connected = False
                     self.connectButton.setText("Connect")
                 except:
-                    wr = QtWidgets.QMessageBox.Error(self.centralWidget, "Error", "Can't disconnect from device!")
+                    wr = QtWidgets.QMessageBox.error(self.centralWidget, "Error", "Can't disconnect from device!")
 
     def _start(self):
-        if Ui_MainWindow.is_started is True:
-            self.startPlotButton.setText("Start Plot")
-            Ui_MainWindow.is_started = False
+        if Ui_MainWindow.is_connected is True:
+            temp = self.send_packet
+            if Ui_MainWindow.is_started is True:
+                temp[3] = 0x31
+                self.ser.write(self.send_packet)
+                self.startPlotButton.setText("Start Plot")
+                Ui_MainWindow.is_started = False
+            else:
+                self.startPlotButton.setText("Stop Plot")
+                temp[3] = 0x32
+                self.ser.write(temp)
+                Ui_MainWindow.is_started = True
         else:
-            self.startPlotButton.setText("Stop Plot")
-            Ui_MainWindow.is_started = True
+            wr = QtWidgets.QMessageBox.warning(self.centralWidget, "Warning", "Connect to device first!")
 
 
     def closeEvent(self, event):
         if Ui_MainWindow.is_connected is True:
-            wr = QtWidgets.QMessageBox.Warning(self.centralWidget, "Warning", "Disconnect device first!")
+            wr = QtWidgets.QMessageBox.warning(self.centralWidget, "Warning", "Disconnect device first!")
             event.ignore()
         else:
             if Ui_MainWindow.is_started is True:
-                wr = QtWidgets.QMessageBox.Warning(self.centralWidget, "Warning", "Stop data flow first!")
+                wr = QtWidgets.QMessageBox.warning(self.centralWidget, "Warning", "Stop data flow first!")
                 event.ignore()
 
             else:
-                wr = QtWidgets.QMessageBox.Question(self.centralWidget, "Are you sure enough?",
+                wr = QtWidgets.QMessageBox.question(self.centralWidget, "Are you sure enough?",
                                                     QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
                 if wr == QtWidgets.QMessageBox.Yes:
                     event.accept()
@@ -464,7 +507,6 @@ if __name__ == "__main__":
     MainWindow.show()
     sys.exit(app.exec_())
 
-=======
 # -*- coding: utf-8 -*-
 
 # Form implementation generated from reading ui file 'mainwindow.ui'
@@ -859,4 +901,3 @@ if __name__ == "__main__":
     MainWindow.show()
     sys.exit(app.exec_())
 
->>>>>>> origin/master
