@@ -12,10 +12,10 @@ import helpwindow as HW
 import serial
 import serial.tools.list_ports
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
 import sys
 from threading import Thread
-from threading import Lock
 import time
 import numpy as np
 from collections import deque
@@ -204,59 +204,8 @@ class Ui_MainWindow(object):
         self.horizontalLayout_9 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_9.setSpacing(6)
         self.horizontalLayout_9.setObjectName("horizontalLayout_9")
-        self.labelYStep = QtWidgets.QLabel(self.PlotControlsBox)
-        self.labelYStep.setMinimumSize(QtCore.QSize(50, 0))
-        self.labelYStep.setMaximumSize(QtCore.QSize(50, 16777215))
-        self.labelYStep.setObjectName("labelYStep")
-        self.horizontalLayout_9.addWidget(self.labelYStep)
-        self.spinYStep = QtWidgets.QSpinBox(self.PlotControlsBox)
-        self.spinYStep.setMinimumSize(QtCore.QSize(69, 0))
-        self.spinYStep.setMaximumSize(QtCore.QSize(69, 16777215))
-        self.spinYStep.setMinimum(1)
-        self.spinYStep.setMaximum(10000)
-        self.spinYStep.setSingleStep(10)
-        self.spinYStep.setProperty("value", 500)
-        self.spinYStep.setObjectName("spinYStep")
-        self.horizontalLayout_9.addWidget(self.spinYStep)
-        self.plotControlsLayout.addLayout(self.horizontalLayout_9)
-        self.horizontalLayout_7 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_7.setSpacing(6)
-        self.horizontalLayout_7.setObjectName("horizontalLayout_7")
-        self.label = QtWidgets.QLabel(self.PlotControlsBox)
-        self.label.setMinimumSize(QtCore.QSize(50, 0))
-        self.label.setMaximumSize(QtCore.QSize(50, 16777215))
-        self.label.setObjectName("label")
-        self.horizontalLayout_7.addWidget(self.label)
-        self.spinAxesMin = QtWidgets.QDoubleSpinBox(self.PlotControlsBox)
-        self.spinAxesMin.setMinimumSize(QtCore.QSize(69, 0))
-        self.spinAxesMin.setMaximumSize(QtCore.QSize(69, 16777215))
-        self.spinAxesMin.setMinimum(-10)
-        self.spinAxesMin.setMaximum(0)
-        self.spinAxesMin.setSingleStep(0.01)
-        self.spinAxesMin.setObjectName("spinAxesMin")
-        self.horizontalLayout_7.addWidget(self.spinAxesMin)
-        self.plotControlsLayout.addLayout(self.horizontalLayout_7)
-        self.horizontalLayout_8 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_8.setSpacing(6)
-        self.horizontalLayout_8.setObjectName("horizontalLayout_8")
-        self.label_2 = QtWidgets.QLabel(self.PlotControlsBox)
-        self.label_2.setMinimumSize(QtCore.QSize(50, 0))
-        self.label_2.setMaximumSize(QtCore.QSize(50, 16777215))
-        self.label_2.setObjectName("label_2")
-        self.horizontalLayout_8.addWidget(self.label_2)
-        self.spinAxesMax = QtWidgets.QDoubleSpinBox(self.PlotControlsBox)
-        self.spinAxesMax.setMinimumSize(QtCore.QSize(69, 0))
-        self.spinAxesMax.setMaximumSize(QtCore.QSize(69, 16777215))
-        self.spinAxesMax.setMinimum(0)
-        self.spinAxesMax.setMaximum(10)
-        self.spinAxesMax.setSingleStep(0.01)
-        self.spinAxesMax.setProperty("value", 3.3)
-        self.spinAxesMax.setObjectName("spinAxesMax")
-        self.horizontalLayout_8.addWidget(self.spinAxesMax)
-        self.plotControlsLayout.addLayout(self.horizontalLayout_8)
-        self.resetPlotButton = QtWidgets.QPushButton(self.PlotControlsBox)
-        self.resetPlotButton.setObjectName("resetPlotButton")
-        self.plotControlsLayout.addWidget(self.resetPlotButton)
+
+
         self.saveJPGButton = QtWidgets.QPushButton(self.PlotControlsBox)
         self.saveJPGButton.setObjectName("saveJPGButton")
         self.plotControlsLayout.addWidget(self.saveJPGButton)
@@ -271,14 +220,8 @@ class Ui_MainWindow(object):
         self.verticalLayout_2 = QtWidgets.QVBoxLayout()
         self.verticalLayout_2.setSpacing(6)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        # self.widget_2 = QtWidgets.QWidget(self.centralWidget)
-        # self.widget_2.setObjectName("widget_2")
-        # self.verticalLayout_2.addWidget(self.widget_2)
         spacerItem1 = QtWidgets.QSpacerItem(675, 1, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.verticalLayout_2.addItem(spacerItem1)
-        # self.widget = QtWidgets.QWidget(self.centralWidget)
-        # self.widget.setObjectName("widget")
-        # self.verticalLayout_2.addWidget(self.widget)
         self.gridLayout_3.addLayout(self.verticalLayout_2, 0, 1, 1, 1)
         MainWindow.setCentralWidget(self.centralWidget)
         self.statusBar = QtWidgets.QStatusBar(MainWindow)
@@ -306,19 +249,20 @@ class Ui_MainWindow(object):
         self.canvas1 = FigureCanvas(self.figure1)
         self.verticalLayout_2.addWidget(self.canvas1)
 
+
         self.axes = plt.gca()
-        self.axes.set_ylim([self.spinAxesMin.value(), self.spinAxesMax.value()])
         self.axes.set_xlim([0, self.spinPoints.value()])
         self.axes.set_autoscale_on(False)
+        self.axes.set_xticks(np.arange(0, 1024, 100))
 
         self.figure2 = plt.figure()
         self.canvas2 = FigureCanvas(self.figure2)
         self.verticalLayout_2.addWidget(self.canvas2)
 
         self.axes = plt.gca()
-        self.axes.set_ylim([self.spinAxesMin.value(), self.spinAxesMax.value()])
         self.axes.set_xlim([0, self.spinPoints.value()])
         self.axes.set_autoscale_on(False)
+        self.axes.set_xticks(np.arange(0, 1024, 100))
 
         self.actionHow_to_use.triggered.connect(self.openHelp)
 
@@ -347,7 +291,7 @@ class Ui_MainWindow(object):
         self.work_thread = Thread(target=self.plot_thread)
         self.work_thread.start()
 
-        self.resetPlotButton.clicked.connect(self._reset)
+        #self.resetPlotButton.clicked.connect(self._reset)
         self.saveJPGButton.clicked.connect(self._print)
 
         # User code section ends here
@@ -426,6 +370,9 @@ class Ui_MainWindow(object):
                                     np_fft_array = scipy.fftpack.fft(temp_np_array)
                                     ax.plot(np.abs(np_fft_array[:1024 // 2]), 'g-')
                                 self.canvas2.draw()
+
+                                #6. Redraw plot gridlines
+                                plt.grid()
 
                             else:
                                 pass
@@ -535,11 +482,7 @@ class Ui_MainWindow(object):
         self.connectButton.setText(_translate("MainWindow", "Connect"))
         self.PlotControlsBox.setTitle(_translate("MainWindow", "PLOT CONTROLS"))
         self.labelAxes.setText(_translate("MainWindow", "AXES"))
-        self.pointsLabel.setText(_translate("MainWindow", "POINTS"))
-        self.labelYStep.setText(_translate("MainWindow", "Y STEP"))
-        self.label.setText(_translate("MainWindow", "MIN"))
-        self.label_2.setText(_translate("MainWindow", "MAX"))
-        self.resetPlotButton.setText(_translate("MainWindow", "Reset Plot"))
+        self.pointsLabel.setText(_translate("MainWindow", "Fs(kHz):"))
         self.saveJPGButton.setText(_translate("MainWindow", "Save JPG"))
         self.startPlotButton.setText(_translate("MainWindow", "Start Plot"))
         self.menuHelo.setTitle(_translate("MainWindow", "Help"))

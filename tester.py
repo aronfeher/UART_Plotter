@@ -12,6 +12,7 @@ send_data = False
 quit_prog = False
 
 timer = 0
+k = 0
 
 while ser.is_open is True:
     if ser.in_waiting > 0:
@@ -31,7 +32,10 @@ while ser.is_open is True:
             send_packet[2] = 0xFF
             send_packet[3] = 0xFF
 
-        temp = 0.75 * math.sin(2 * math.pi *0.1* timer / 10) + 0.25 * math.sin(2 * math.pi * 1 * timer / 10)
+        temp = 0.75 * math.sin(2 * math.pi * k) + 0.25 * math.sin(2 * math.pi * 10*k)
+        k = k + 0.01 / math.pi
+        if k >= 2*math.pi:
+            k = 0.0
         temp = int((temp + 1)/2 * 65536)
         send_packet[4] = (temp >> 8) & 0xFF
         send_packet[5] = temp & 0xFF
