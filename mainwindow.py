@@ -201,11 +201,23 @@ class Ui_MainWindow(object):
         self.spinPoints.setObjectName("spinPoints")
         self.horizontalLayout_10.addWidget(self.spinPoints)
         self.plotControlsLayout.addLayout(self.horizontalLayout_10)
-        self.horizontalLayout_9 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_9.setSpacing(6)
-        self.horizontalLayout_9.setObjectName("horizontalLayout_9")
-
-
+        self.horizontalLayout_11 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_11.setSpacing(6)
+        self.horizontalLayout_11.setObjectName("horizontalLayout_10")
+        self.freqLabel = QtWidgets.QLabel(self.PlotControlsBox)
+        self.freqLabel.setMinimumSize(QtCore.QSize(50, 0))
+        self.freqLabel.setMaximumSize(QtCore.QSize(50, 16777215))
+        self.freqLabel.setObjectName("freqLabel")
+        self.horizontalLayout_11.addWidget(self.freqLabel)
+        self.spinFreqs = QtWidgets.QDoubleSpinBox(self.PlotControlsBox)
+        self.spinFreqs.setMinimumSize(QtCore.QSize(69, 0))
+        self.spinFreqs.setMaximumSize(QtCore.QSize(69, 16777215))
+        self.spinFreqs.setMinimum(0.01)
+        self.spinFreqs.setMaximum(1000)
+        self.spinFreqs.setProperty("value", 10.00)
+        self.spinFreqs.setObjectName("spinFreqs")
+        self.horizontalLayout_11.addWidget(self.spinFreqs)
+        self.plotControlsLayout.addLayout(self.horizontalLayout_11)
         self.saveJPGButton = QtWidgets.QPushButton(self.PlotControlsBox)
         self.saveJPGButton.setObjectName("saveJPGButton")
         self.plotControlsLayout.addWidget(self.saveJPGButton)
@@ -282,10 +294,15 @@ class Ui_MainWindow(object):
 
         self.startPlotButton.clicked.connect(self._start)
 
-        len = self.spinPoints.value()
+        self.len = self.spinPoints.value()
 
-        Ui_MainWindow.rec_data1 = deque([0]*len, len)
-        Ui_MainWindow.rec_data2 = deque([0]*len, len)
+        Ui_MainWindow.rec_data1 = deque([0]*self.len, self.len)
+        Ui_MainWindow.rec_data2 = deque([0]*self.len, self.len)
+
+        self.freq = self.spinFreqs.value()
+
+        self.spinFreqs.valueChanged.connect(self._change_freq)
+        self.spinPoints.valueChanged.connect(self._change_sample_len)
 
 
         self.work_thread = Thread(target=self.plot_thread)
@@ -299,6 +316,14 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         self.comboAxes.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def _change_freq(self):
+       self.freq = self.spinFreqs.value()
+
+    def _change_sample_len(self):
+        self.len = self.spinPoints.value()
+        Ui_MainWindow.rec_data1 = deque([0] * self.len, self.len)
+        Ui_MainWindow.rec_data2 = deque([0] * self.len, self.len)
 
     def plotType(self):
         temp_text = self.comboAxes.currentText()
@@ -352,23 +377,25 @@ class Ui_MainWindow(object):
                                 self.canvas1.draw()
 
                                 # 5. FFT
+
+                                X = np.linspace(0, self.freq*1000 // 2, self.len // 2)
                                 self.figure2.clear()
                                 ax = self.figure2.add_subplot(111)
                                 if Ui_MainWindow.plot_mode == 1:
                                     temp_np_array = np.array(Ui_MainWindow.rec_data1, dtype=np.float32)
                                     np_fft_array = scipy.fftpack.fft(temp_np_array)
-                                    ax.plot(np.abs(np_fft_array[:1024 // 2]), 'r-')
+                                    ax.plot(X, np.abs(np_fft_array[:self.len // 2]), 'r-')
                                 elif Ui_MainWindow.plot_mode == 2:
                                     temp_np_array = np.array(Ui_MainWindow.rec_data2, dtype=np.float32)
                                     np_fft_array = scipy.fftpack.fft(temp_np_array)
-                                    ax.plot(np.abs(np_fft_array[:1024 // 2]), 'g-')
+                                    ax.plot(X, np.abs(np_fft_array[:self.len // 2]), 'g-')
                                 elif Ui_MainWindow.plot_mode == 3:
                                     temp_np_array = np.array(Ui_MainWindow.rec_data1, dtype=np.float32)
                                     np_fft_array = scipy.fftpack.fft(temp_np_array)
-                                    ax.plot(np.abs(np_fft_array[:1024 // 2]), 'r-')
+                                    ax.plot(X, np.abs(np_fft_array[:self.len // 2]), 'r-')
                                     temp_np_array = np.array(Ui_MainWindow.rec_data2, dtype=np.float32)
                                     np_fft_array = scipy.fftpack.fft(temp_np_array)
-                                    ax.plot(np.abs(np_fft_array[:1024 // 2]), 'g-')
+                                    ax.plot(X, np.abs(np_fft_array[:self.len // 2]), 'g-')
                                 self.canvas2.draw()
 
                                 #6. Redraw plot gridlines
@@ -482,7 +509,8 @@ class Ui_MainWindow(object):
         self.connectButton.setText(_translate("MainWindow", "Connect"))
         self.PlotControlsBox.setTitle(_translate("MainWindow", "PLOT CONTROLS"))
         self.labelAxes.setText(_translate("MainWindow", "AXES"))
-        self.pointsLabel.setText(_translate("MainWindow", "Fs(kHz):"))
+        self.pointsLabel.setText(_translate("MainWindow", "Samples"))
+        self.freqLabel.setText(_translate("MainWindow", "Fs(kHz)"))
         self.saveJPGButton.setText(_translate("MainWindow", "Save JPG"))
         self.startPlotButton.setText(_translate("MainWindow", "Start Plot"))
         self.menuHelo.setTitle(_translate("MainWindow", "Help"))
